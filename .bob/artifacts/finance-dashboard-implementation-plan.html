@@ -1,0 +1,272 @@
+
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Finance Dashboard Implementation Plan</title>
+<style>
+  body { margin: 0; background: #ffffff; color: #1f2328; font-family: -apple-system, "Segoe UI", system-ui, sans-serif; font-size: 14.5px; line-height: 1.6; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 40px 24px 24px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  h2 { font-size: 19px; margin: 36px 0 10px; padding-top: 6px; border-top: 1px solid #e5e7eb; }
+  h3 { font-size: 15px; margin: 20px 0 6px; }
+  p { margin: 8px 0; }
+  .sub { color: #57606a; margin: 0 0 18px; }
+  .box { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px 16px; margin: 14px 0; }
+  .box strong.lbl { color: #3b82d4; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13.5px; }
+  th, td { text-align: left; vertical-align: top; padding: 7px 10px; border: 1px solid #e5e7eb; }
+  th { background: #f7f8fa; font-weight: 600; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 3px; padding: 1px 4px; }
+  pre { background: #f7f8fa; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px 14px; overflow-x: auto; font-size: 12.5px; line-height: 1.5; margin: 12px 0; }
+  pre code { background: none; border: 0; padding: 0; }
+  ul, ol { margin: 8px 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  .muted { color: #57606a; }
+  .flow { display: block; margin: 14px 0; }
+  footer { margin-top: 44px; padding-top: 12px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 12px; color: #57606a; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>React Market Dashboard: Implementation Plan</h1>
+<p class="sub">IBM and up to four competitors · Yahoo Finance data · Day, 7-day and quarter views</p>
+
+<div class="box">
+  <strong class="lbl">Summary.</strong> Build a Vite + TypeScript React app backed by a thin Express proxy that wraps <code>yahoo-finance2</code>. The UI talks only to <code>/api/*</code>. TanStack Query manages server state, Carbon Charts renders rebased comparison lines, and a fixture provider keeps tests and demos independent of Yahoo. Work lands as small PRs, each tied to a GitHub issue.
+</div>
+
+<h2>1. Repository starting point</h2>
+<p>The repository contains workshop documents only: <code>README.md</code>, two workshop guides, a CI workflow, a PR template and one example feature request. There is no <code>package.json</code>, <code>.gitignore</code> or application code. The app is built at the repository root because the existing CI and PR template assume a root <code>package.json</code>.</p>
+
+<h3>Corrections needed in <code>.github/workflows/finance-app-ci.yml</code></h3>
+<table>
+  <tr><th>Issue</th><th>Fix</th></tr>
+  <tr><td><code>cache: npm</code> needs a committed lockfile</td><td>Commit <code>package-lock.json</code></td></tr>
+  <tr><td><code>npm install</code> is not reproducible</td><td>Use <code>npm ci</code></td></tr>
+  <tr><td><code>--runInBand</code> is a Jest flag</td><td>Remove it; run <code>vitest run</code></td></tr>
+  <tr><td>Node 20 is pinned independently</td><td>Add <code>.nvmrc</code> and <code>engines</code>; align CI to the same LTS</td></tr>
+  <tr><td><code>--if-present</code> lets missing scripts pass silently</td><td>Remove it once scripts exist</td></tr>
+  <tr><td>No typecheck or dependency audit</td><td>Add <code>npm run typecheck</code> and <code>npm audit --omit=dev</code></td></tr>
+</table>
+
+<h2>2. Key decision: backend proxy</h2>
+<p>Yahoo Finance has no official public API and does not provide browser CORS access. <code>yahoo-finance2</code> is a Node library. A proxy is therefore required for reliability.</p>
+<ul>
+  <li><strong>Proxy:</strong> fetches, normalizes, caches and returns a stable JSON contract.</li>
+  <li><strong>React app:</strong> never imports <code>yahoo-finance2</code>.</li>
+  <li><strong>Provider interface:</strong> <code>YahooProvider</code> for live data and <code>FixtureProvider</code> for tests, demos and offline use.</li>
+</ul>
+<pre><code>React UI (src/)
+   | HTTP /api/*
+   v
+Express proxy (server/, bound to 127.0.0.1)
+   |
+MarketDataService  - cache, normalize, zod validation
+   |
+MarketDataProvider (interface)
+   +-- YahooProvider    (yahoo-finance2)
+   +-- FixtureProvider  (offline / tests)
+
+shared/ (types + zod schemas) is imported by both sides</code></pre>
+
+<h2>3. Folder layout</h2>
+<pre><code>/
+  package.json  package-lock.json  .nvmrc  .gitignore  .env.example
+  vite.config.ts  tsconfig.json  eslint.config.js  index.html
+  shared/       types.ts, schemas.ts          (API contract)
+  server/
+    index.ts                                  (127.0.0.1, helmet, rate limit)
+    routes/     quotes.ts, history.ts, symbols.ts
+    providers/  MarketDataProvider.ts, yahooProvider.ts, fixtureProvider.ts
+    services/   marketDataService.ts
+    errors.ts
+  src/
+    main.tsx  App.tsx
+    config/     companies.ts                  (company registry)
+    api/        client.ts, queries.ts
+    domain/     pure functions: normalize, % change, rebase, rank
+    hooks/      useQuotes, useHistory, useSelectedWindow
+    state/      UI state
+    components/ layout/ cards/ charts/ feedback/ selectors/
+    views/      DayView, WeekView, QuarterView
+    test/       setup, fixtures, MSW handlers
+  docs/         architecture.md, adr/, pr-feature-request-example.md
+  .github/      workflows/, ISSUE_TEMPLATE/, CODEOWNERS, PR template</code></pre>
+
+<h2>4. Data contract and services</h2>
+<h3>Provider interface (server)</h3>
+<pre><code>interface MarketDataProvider {
+  getQuotes(symbols: string[]): Promise&lt;RawQuote[]&gt;;
+  getHistory(symbol: string, range: HistoryRequest): Promise&lt;RawBar[]&gt;;
+  searchSymbol?(q: string): Promise&lt;SymbolHit[]&gt;;   // used in Part 2
+}</code></pre>
+<p><code>MarketDataService</code> maps windows to intervals, normalizes output to <code>{ symbol, currency, points[{t, close}], previousClose }</code>, drops and flags missing bars, and applies a TTL cache with request de-duplication.</p>
+
+<table>
+  <tr><th>View</th><th>Yahoo request</th><th>Notes</th></tr>
+  <tr><td>Current day</td><td><code>5m</code> bars from the start of the latest session</td><td>On weekends or closed markets, fall back to the last trading session and label it</td></tr>
+  <tr><td>Last 7 days</td><td><code>1h</code> (or <code>30m</code>) bars over 7 calendar days</td><td>Covers about 5 trading days</td></tr>
+  <tr><td>Last quarter</td><td><code>1d</code> bars over trailing ~90 days</td><td>Assumed definition; recorded in an ADR</td></tr>
+</table>
+
+<h3>API surface</h3>
+<ul>
+  <li><code>GET /api/quotes?symbols=IBM,MSFT,...</code></li>
+  <li><code>GET /api/history?symbol=IBM&amp;window=day|week|quarter</code></li>
+  <li><code>GET /api/history/compare?symbols=...&amp;window=...</code> (one batched call per view)</li>
+</ul>
+
+<h3>Client</h3>
+<p><code>api/client.ts</code> wraps <code>fetch</code> with an <code>AbortSignal</code> timeout, parses every response with the shared zod schema, and throws typed <code>ApiError</code>s. <code>domain/</code> holds pure functions with no React or network dependency: <code>toPercentChange</code>, <code>rebaseToHundred</code>, <code>rankBy</code>, <code>computeWindowChange</code>.</p>
+
+<h2>5. React component boundaries</h2>
+<table>
+  <tr><th>Layer</th><th>Responsibility</th><th>Knows about</th></tr>
+  <tr><td><code>App</code> / <code>AppShell</code></td><td>Layout, theme, error boundary</td><td>No data</td></tr>
+  <tr><td><code>WindowTabs</code></td><td>Switch Day / Week / Quarter</td><td>Selected window only</td></tr>
+  <tr><td><code>views/*View</code></td><td>Compose cards and chart for one window</td><td>Hooks and presentational components</td></tr>
+  <tr><td><code>hooks/*</code></td><td>Fetching, loading and error mapping</td><td><code>api/queries</code></td></tr>
+  <tr><td><code>cards/*</code>, <code>charts/*</code>, <code>feedback/*</code></td><td>Pure presentation from props</td><td>Domain types only</td></tr>
+  <tr><td><code>charts/LineChartAdapter</code></td><td>Sole importer of the chart library</td><td>Chart library API</td></tr>
+</table>
+<p>Rules: presentational components never fetch; only <code>LineChartAdapter</code> imports the chart library, so a library swap touches one file.</p>
+
+<h2>6. Charting approach</h2>
+<ul>
+  <li><strong>Library:</strong> <code>@carbon/react</code> with <code>@carbon/charts-react</code> for IBM design consistency and accessibility. Fall back to Recharts if the first spike finds React 19 or Vite incompatibility.</li>
+  <li><strong>Day:</strong> summary cards plus an intraday multi-line chart.</li>
+  <li><strong>Week:</strong> multi-line chart of percent change rebased to 0%.</li>
+  <li><strong>Quarter:</strong> line or area chart rebased to 100, plus a ranking table.</li>
+  <li><strong>Rebasing</strong> is required because the companies trade at very different price levels.</li>
+  <li><strong>Accessibility:</strong> a data table or text summary per chart, and series that differ by more than color.</li>
+</ul>
+
+<h2>7. State management</h2>
+<table>
+  <tr><th>State kind</th><th>Tool</th></tr>
+  <tr><td>Server state (quotes, history)</td><td>TanStack Query: caching, de-duplication, retries, per-window <code>staleTime</code>, loading and error flags</td></tr>
+  <tr><td>UI state (selected window, visible symbols)</td><td><code>useState</code> / <code>useReducer</code> in <code>App</code>; optionally mirrored to the URL as <code>?window=week</code></td></tr>
+  <tr><td>Configuration (company list)</td><td>Static module <code>config/companies.ts</code></td></tr>
+</table>
+<p>No Redux or Zustand until a concrete need appears. The Part 2 selected-company feature adds one piece of UI state and one query key.</p>
+
+<h2>8. Error handling</h2>
+<h3>Server</h3>
+<ul>
+  <li>Typed errors: <code>UPSTREAM_UNAVAILABLE</code>, <code>SYMBOL_NOT_FOUND</code>, <code>RATE_LIMITED</code>, <code>BAD_REQUEST</code>.</li>
+  <li>Clients get generic messages only. Stack traces and upstream details are logged server-side as structured JSON without sensitive data.</li>
+  <li>All outbound calls have timeouts.</li>
+  <li>Zod allowlist validation: symbol regex <code>^[A-Z.\-]{1,10}$</code>, window enum, maximum 5 symbols.</li>
+</ul>
+<h3>Resilience</h3>
+<ul>
+  <li><code>Promise.allSettled</code> per symbol: one failing competitor shows an inline unavailable card, not a broken page.</li>
+  <li>Stale cache fallback flagged <code>stale: true</code>, with a "Data as of ..." banner.</li>
+</ul>
+<h3>Client</h3>
+<ul>
+  <li>Per-card <code>ErrorPanel</code> with retry, a top-level <code>ErrorBoundary</code>, and a distinct <code>EmptyState</code> for market closed or no data.</li>
+  <li>Offline fixture mode via <code>VITE_DATA_MODE=fixture</code>.</li>
+</ul>
+
+<h2>9. Test strategy</h2>
+<table>
+  <tr><th>Level</th><th>Tooling</th><th>Covers</th></tr>
+  <tr><td>Unit</td><td>Vitest</td><td><code>domain/*</code>, window-to-interval mapping, zod schemas, missing-bar handling</td></tr>
+  <tr><td>Service / API</td><td>Vitest + Supertest + <code>FixtureProvider</code></td><td>Routes, validation rejects, error mapping, cache behavior. Yahoo is never called in CI</td></tr>
+  <tr><td>Component</td><td>Vitest + React Testing Library</td><td>Cards, tab switching, loading, error and partial-failure states</td></tr>
+  <tr><td>Integration</td><td>RTL + MSW</td><td>Full <code>App</code> against mocked <code>/api/*</code>, including a failing competitor</td></tr>
+  <tr><td>Contract</td><td>Shared zod schemas</td><td>Same schema validates server responses and client parsing</td></tr>
+  <tr><td>Smoke (later)</td><td>Playwright</td><td>Three tabs render against fixtures</td></tr>
+</table>
+<p>Charts are mocked in component tests; only adapter props are asserted. Target about 80% coverage on <code>domain/</code> and <code>server/services</code>.</p>
+
+<h2>10. Local validation</h2>
+<p>Scripts: <code>dev</code>, <code>dev:server</code>, <code>build</code>, <code>lint</code>, <code>typecheck</code>, <code>test</code>, <code>test:watch</code>, <code>validate</code>.</p>
+<pre><code>nvm use &amp;&amp; npm ci
+npm run lint &amp;&amp; npm run typecheck &amp;&amp; npm test &amp;&amp; npm run build
+npm audit --omit=dev
+VITE_DATA_MODE=fixture npm run dev     # offline demo
+npm run dev                            # live Yahoo via proxy</code></pre>
+<p><strong>Success criteria:</strong></p>
+<ul>
+  <li>Lint, typecheck, tests and build exit 0.</li>
+  <li>No high or critical audit findings.</li>
+  <li>All three tabs render for IBM plus four peers.</li>
+  <li>Stopping the proxy shows error panels, not a blank page.</li>
+  <li>Fixture mode works with no network.</li>
+</ul>
+<p><code>npm run validate</code> chains these checks, and CI runs the same command.</p>
+
+<h2>11. Security and dependencies</h2>
+<ul>
+  <li>The server binds explicitly to <code>127.0.0.1</code>, with <code>helmet</code>, a rate limit and a CORS allowlist limited to the Vite dev origin.</li>
+  <li>No secrets in the repository. <code>.env</code> is git-ignored and <code>.env.example</code> is committed.</li>
+  <li>Commit the lockfile; enable Mend or Dependabot; re-check <code>yahoo-finance2</code> maintenance at install time.</li>
+  <li>If containerized later: <code>registry.redhat.io</code> UBI minimal base, non-root <code>USER</code>, read-only root filesystem.</li>
+</ul>
+<p class="muted">Latest versions from an npm lookup at planning time. Re-verify and audit when scaffolding.</p>
+<table>
+  <tr><th>Package</th><th>Version</th><th>Package</th><th>Version</th></tr>
+  <tr><td>react</td><td>19.3.1</td><td>@tanstack/react-query</td><td>5.104.5</td></tr>
+  <tr><td>vite</td><td>8.3.5</td><td>@carbon/react</td><td>1.119.0</td></tr>
+  <tr><td>vitest</td><td>5.0.5</td><td>@carbon/charts-react</td><td>1.27.22</td></tr>
+  <tr><td>yahoo-finance2</td><td>4.0.5</td><td>zod</td><td>4.6.7</td></tr>
+  <tr><td>express</td><td>5.3.0</td><td>helmet</td><td>8.3.0</td></tr>
+  <tr><td>typescript</td><td>7.0.2</td><td>msw</td><td>3.0.3</td></tr>
+</table>
+
+<h2>12. Supporting GitHub-driven evolution</h2>
+<h3>Design for extension</h3>
+<ul>
+  <li>Add a company: edit <code>config/companies.ts</code> only.</li>
+  <li>Add a data source: implement <code>MarketDataProvider</code>; no UI change.</li>
+  <li>Add a view: add a <code>views/*View</code> and one tab entry.</li>
+  <li>Add a chart: compose <code>LineChartAdapter</code>.</li>
+  <li>The Part 2 "user-selected company graph" is pre-provisioned with <code>SymbolPicker</code>, symbol validation and <code>useHistory(symbol, window)</code>. It lands as one component, one hook usage and one test file, with the existing views untouched.</li>
+</ul>
+<h3>Repository scaffolding</h3>
+<ol>
+  <li><code>.github/ISSUE_TEMPLATE/feature.yml</code> and <code>bug.yml</code> with Problem, Acceptance criteria (checkbox list), Affected area (ui / server / domain / ci) and Test expectations. Structured issues map cleanly to the diff in <code>/review --issue-coverage</code>.</li>
+  <li>Labels: <code>feature</code>, <code>bug</code>, <code>bob-ready</code>, <code>needs-design</code>, <code>area:*</code>.</li>
+  <li><code>CODEOWNERS</code> and branch protection on <code>main</code> with the <code>validate</code> check required.</li>
+  <li>PR template additions: <code>Closes #N</code>, link to acceptance criteria, <code>npm run validate</code> output.</li>
+  <li><code>docs/architecture.md</code> and short ADRs (why a proxy, why rebasing, quarter definition).</li>
+  <li>An <code>AGENTS.md</code> or Bob rules file stating the folder map, the "presentational components never fetch" rule, the "new data goes through shared zod schemas" rule, test expectations and branch names (<code>feature/</code>, <code>fix/</code>, <code>bob/</code>, matching the CI triggers).</li>
+  <li>Keep issues small and single-layer so diffs stay reviewable.</li>
+</ol>
+<h3>Flow</h3>
+<pre><code>Issue with acceptance criteria
+   -&gt; Branch feature/...
+   -&gt; Bob: plan, implement, add tests
+   -&gt; npm run validate
+   -&gt; PR (Closes #N, template completed)
+   -&gt; GitHub Actions runs the same validate
+   -&gt; Human review and merge</code></pre>
+<p>Bob handles implementation, validation and PR text. A human or separate automation performs the merge.</p>
+
+<h2>13. Delivery sequence</h2>
+<p>Each step is one reviewable PR.</p>
+<table>
+  <tr><th>#</th><th>Scope</th></tr>
+  <tr><td>1</td><td>Scaffold and tooling: Vite + TS, ESLint, Vitest, <code>.gitignore</code>, <code>.nvmrc</code>, lockfile, CI corrections</td></tr>
+  <tr><td>2</td><td>Shared contracts, <code>domain/</code> and <code>FixtureProvider</code>, with unit tests</td></tr>
+  <tr><td>3</td><td>Express proxy and <code>YahooProvider</code>, with API tests and error mapping</td></tr>
+  <tr><td>4</td><td>Client API layer, TanStack Query hooks, feedback components</td></tr>
+  <tr><td>5</td><td>Dashboard views: Day, then Week, then Quarter with ranking table</td></tr>
+  <tr><td>6</td><td>Integration tests, accessibility pass, docs and issue templates</td></tr>
+  <tr><td>7</td><td>Part 2: user-selected company graph via a real issue-to-PR cycle</td></tr>
+</table>
+
+<h2>14. Open decisions</h2>
+<ol>
+  <li>"Last quarter" as trailing ~90 days (assumed) or the previous calendar quarter.</li>
+  <li>Carbon Charts (assumed) or Recharts, settled by the compatibility spike.</li>
+  <li>Competitor set: README default of Microsoft, Oracle, SAP and Salesforce.</li>
+</ol>
+
+<footer>Made with IBM Bob</footer>
+</div>
+</body>
+</html>
