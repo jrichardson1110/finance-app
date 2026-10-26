@@ -70,3 +70,43 @@ body { margin: 0; line-height: 1.5; }
 .loading-block { padding: 48px 0; text-align: center; color: var(--muted); }
 .error-panel { padding: 12px 16px; border-left: 4px solid var(--down); background: #fff1f1; margin-bottom: 12px; }
 .error-panel p { margin: 0 0 8px; }
+
+.custom-company-section { margin-top: 24px; border-top: 1px solid var(--border); padding-top: 20px; }
+.custom-company-control { margin-bottom: 16px; }
+.custom-company-form { display: flex; flex-direction: column; gap: 8px; }
+.custom-company-form__label { font-size: 0.95rem; font-weight: 600; color: var(--text); }
+.custom-company-form__input-group { display: flex; gap: 8px; max-width: 440px; }
+.custom-company-form__input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  font: inherit;
+  font-size: 0.9rem;
+  background: var(--bg);
+  color: var(--text);
+  text-transform: uppercase;
+}
+.custom-company-form__input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.custom-company-form__submit {
+  padding: 8px 16px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.custom-company-form__submit:hover { opacity: 0.9; }
+.custom-company-form__submit:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.custom-company-form__clear {
+  padding: 8px 12px;
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+.custom-company-form__clear:hover { color: var(--text); }
+.custom-company-form__validation-error { margin: 6px 0 0; color: var(--down); font-size: 0.85rem; }

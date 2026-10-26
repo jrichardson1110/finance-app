@@ -1,0 +1,287 @@
+
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Technical Assessment &amp; Architecture Report: User-Selected Company Chart</title>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    background-color: #ffffff;
+    color: #1f2328;
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 32px 16px;
+  }
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+  }
+  header {
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 20px;
+    margin-bottom: 24px;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background-color: #f7f8fa;
+    color: #57606a;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #1f2328;
+    margin-bottom: 6px;
+  }
+  .meta {
+    font-size: 13px;
+    color: #57606a;
+  }
+  section {
+    margin-bottom: 28px;
+  }
+  h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2328;
+    margin-bottom: 12px;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 6px;
+  }
+  h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2328;
+    margin: 14px 0 6px 0;
+  }
+  p {
+    margin-bottom: 10px;
+  }
+  ul, ol {
+    margin-left: 20px;
+    margin-bottom: 12px;
+  }
+  li {
+    margin-bottom: 4px;
+  }
+  .card {
+    background-color: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-bottom: 14px;
+  }
+  .card-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: #1f2328;
+    margin-bottom: 6px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 14px;
+    font-size: 13px;
+  }
+  th, td {
+    padding: 8px 12px;
+    text-align: left;
+    border: 1px solid #e5e7eb;
+    vertical-align: top;
+  }
+  th {
+    background-color: #f7f8fa;
+    font-weight: 600;
+    color: #1f2328;
+  }
+  code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    background-color: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 3px;
+    padding: 1px 4px;
+  }
+  pre {
+    background-color: #f7f8fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 4px;
+    padding: 12px;
+    overflow-x: auto;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+  .status-tag {
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 3px;
+  }
+  .tag-ok {
+    background-color: #e6f4ea;
+    color: #137333;
+    border: 1px solid #ceead6;
+  }
+  .tag-neutral {
+    background-color: #e8f0fe;
+    color: #1a73e8;
+    border: 1px solid #d2e3fc;
+  }
+  footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+    text-align: center;
+    font-size: 12px;
+    color: #57606a;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="badge">Architecture &amp; Feasibility Report</div>
+    <h1>Feature Assessment: User-Selected Company Chart</h1>
+    <div class="meta">Target: <code>jrichardson1110/finance-app</code> | Issue #1 | Branch: <code>feature/user-selected-company-chart</code></div>
+  </header>
+
+  <section>
+    <h2>1. Executive Summary &amp; Issue Context</h2>
+    <div class="card">
+      <div class="card-title">GitHub Issue #1: Add a graph for a user selected company</div>
+      <p><strong>Status:</strong> Open | <strong>Author:</strong> jrichardson1110</p>
+      <p><strong>Core Objective:</strong> Provide dashboard users with the ability to dynamically select or enter a ticker symbol to compare against benchmark data, while ensuring zero regression to the existing fixed competitor comparisons (IBM vs. MSFT, ORCL, SAP, CRM).</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Acceptance Criteria</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:14%">ID</th>
+          <th style="width:28%">Domain</th>
+          <th>Requirement Specification</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>AC-01</code></td>
+          <td>Input &amp; Validation</td>
+          <td>Provide an accessible text input / selector for symbol entry. Normalize input automatically (trim whitespace, uppercase transformation).</td>
+        </tr>
+        <tr>
+          <td><code>AC-02</code></td>
+          <td>Client Validation</td>
+          <td>Validate input against symbol regex pattern (<code>/^[A-Z0-9.-]{1,10}$/</code>). Reject malformed input prior to network dispatch with an inline guidance prompt.</td>
+        </tr>
+        <tr>
+          <td><code>AC-03</code></td>
+          <td>Dynamic Querying</td>
+          <td>Fetch price series data for the selected symbol across the currently active time window (<code>day</code>, <code>week</code>, or <code>quarter</code>).</td>
+        </tr>
+        <tr>
+          <td><code>AC-04</code></td>
+          <td>Visualization</td>
+          <td>Render a dedicated chart or rebased comparative trend line displaying the user-selected company alongside IBM baseline data.</td>
+        </tr>
+        <tr>
+          <td><code>AC-05</code></td>
+          <td>Error Feedback</td>
+          <td>If the symbol does not exist (<code>SYMBOL_NOT_FOUND</code> / 404), display a clear, non-technical error notification without crashing parent containers.</td>
+        </tr>
+        <tr>
+          <td><code>AC-06</code></td>
+          <td>Non-Regression</td>
+          <td>Existing fixed comparison views (Quote Cards, Change Bar Charts, Relative Performance Cards, Rank Highlights) remain unaffected.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>3. Architecture &amp; System Impact Analysis</h2>
+
+    <h3>Data Service Layer (Server &amp; Proxy Client)</h3>
+    <p>The existing backend architecture is already designed to support arbitrary ticker lookups without schema or endpoint alterations:</p>
+    <ul>
+      <li><code>GET /api/history?symbol=:symbol&amp;window=:window</code>: Accepts any symbol matching <code>SymbolSchema</code>.</li>
+      <li><code>GET /api/quotes?symbols=:symbols</code>: Accepts comma-separated tickers up to <code>MAX_SYMBOLS_PER_REQUEST</code> (10).</li>
+      <li><code>createHttpFinanceService</code>: Already exposes <code>getHistory(symbol, window)</code> and translates backend error codes to typed <code>FinanceServiceError</code> instances.</li>
+    </ul>
+
+    <h3>State Management Strategy</h3>
+    <p>To avoid polluting the fixed competitor dataset, query states must be completely isolated:</p>
+    <div class="card">
+      <div class="card-title">Decoupled Query Boundary</div>
+      <p>Do <strong>not</strong> inject dynamic symbols into the core <code>useWindowSeries</code> hook. Instead, implement a dedicated hook (e.g. <code>useCustomCompanySeries</code>) using TanStack Query:</p>
+      <pre>const customQuery = useQuery({
+  queryKey: ['customHistory', selectedSymbol, window],
+  queryFn: ({ signal }) =&gt; financeService.getHistory(selectedSymbol, window, signal),
+  enabled: Boolean(selectedSymbol &amp;&amp; isValidSymbol(selectedSymbol)),
+  staleTime: WINDOW_CONFIG[window].staleTimeMs,
+});</pre>
+    </div>
+
+    <h3>UI Component Hierarchy</h3>
+    <ul>
+      <li><code>CustomCompanySearchCard</code>: Encapsulates user input, submit/reset triggers, client-side validation errors, loading skeletons, and upstream error displays.</li>
+      <li><code>DashboardPage</code>: Mounts the custom card alongside existing view containers while feeding the shared active <code>window</code> state.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>4. Non-Regression &amp; Isolation Plan</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Subsystem</th>
+          <th>Implementation Guardrail</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>src/config/companies.ts</code></td>
+          <td>Keep <code>COMPANIES</code> and <code>SYMBOLS</code> constants static and immutable.</td>
+          <td><span class="status-tag tag-ok">Protected</span></td>
+        </tr>
+        <tr>
+          <td><code>useWindowSeries</code></td>
+          <td>Maintain fixed peer registry array mapping. Prevent partial failures from bubbling up to global dashboard states.</td>
+          <td><span class="status-tag tag-ok">Protected</span></td>
+        </tr>
+        <tr>
+          <td>Shared Chart Utilities</td>
+          <td>Re-use domain helpers (<code>buildComparisonRows</code>, <code>rebaseToHundred</code>) as pure functions.</td>
+          <td><span class="status-tag tag-neutral">Shared</span></td>
+        </tr>
+        <tr>
+          <td>Error Boundaries</td>
+          <td>Isolate custom search card error state to ensure invalid inputs do not trigger top-level <code>ErrorPanel</code>.</td>
+          <td><span class="status-tag tag-ok">Protected</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    Made with IBM Bob
+  </footer>
+</div>
+</body>
+</html>

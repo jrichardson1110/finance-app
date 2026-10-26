@@ -4,6 +4,7 @@ import { FOCUS_SYMBOL, SYMBOLS } from '../config/companies';
 import { WINDOW_CONFIG } from '../config/windows';
 import { useQuotes } from '../hooks/useQuotes';
 import { useWindowSeries } from '../hooks/useWindowSeries';
+import { CustomCompanyCard } from '../views/CustomCompanyCard';
 import { DayView } from '../views/DayView';
 import { QuarterView } from '../views/QuarterView';
 import { WeekView } from '../views/WeekView';
@@ -32,6 +33,7 @@ export function DashboardPage() {
         {window === 'week' ? <WeekView data={data} currency={currency} /> : null}
         {window === 'quarter' ? <QuarterView data={data} currency={currency} /> : null}
       </section>
+      <CustomCompanyCard window={window} />
     </>
   );
 }

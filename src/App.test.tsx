@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { App } from './App';
@@ -128,5 +128,44 @@ describe('Last quarter view', () => {
     await waitFor(() => expect(screen.getByTestId('line-chart')).toHaveAttribute('data-window', 'quarter'));
     expect(screen.getByRole('table', { name: 'Last quarter, ranked by change' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Last quarter' })).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
+describe('User-selected company lookup', () => {
+  it('allows looking up a custom company and rendering its comparison chart without affecting existing dashboards', async () => {
+    render(<App service={createFixtureFinanceService()} />);
+
+    // Existing dashboard is rendered as expected
+    expect(screen.getByRole('article', { name: 'IBM summary' })).toBeInTheDocument();
+
+    const input = screen.getByLabelText(/look up another company/i);
+    fireEvent.change(input, { target: { value: 'MSFT' } });
+    const form = screen.getByRole('search', { name: /search company symbol/i });
+    fireEvent.submit(form);
+
+    await waitFor(() => {
+      const charts = screen.getAllByTestId('line-chart');
+      expect(charts).toHaveLength(2);
+      expect(charts[1]).toHaveTextContent('IBM,MSFT');
+    }, { timeout: 5000 });
+
+    // Existing competitor cards remain unchanged
+    for (const company of COMPANIES) {
+      expect(screen.getByRole('article', { name: `${company.name} summary` })).toBeInTheDocument();
+    }
+  });
+
+  it('displays a clear error when an unknown symbol is queried and does not fall back to competitor data', async () => {
+    render(<App service={createFixtureFinanceService()} />);
+
+    const input = screen.getByLabelText(/look up another company/i);
+    fireEvent.change(input, { target: { value: 'UNKNOWN' } });
+    const form = screen.getByRole('search', { name: /search company symbol/i });
+    fireEvent.submit(form);
+
+    expect(await screen.findByText('No data available for symbol "UNKNOWN".', {}, { timeout: 5000 })).toBeInTheDocument();
+
+    // Only the default line chart exists; no fallback custom chart is rendered
+    expect(screen.getAllByTestId('line-chart')).toHaveLength(1);
   });
 });
