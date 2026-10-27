@@ -70,3 +70,23 @@ body { margin: 0; line-height: 1.5; }
 .loading-block { padding: 48px 0; text-align: center; color: var(--muted); }
 .error-panel { padding: 12px 16px; border-left: 4px solid var(--down); background: #fff1f1; margin-bottom: 12px; }
 .error-panel p { margin: 0 0 8px; }
+
+.user-chart-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--border); }
+.user-chart-section__heading { margin: 0; font-size: 1.1rem; }
+.user-chart-section__description { margin: 4px 0 16px; color: var(--muted); font-size: 0.85rem; }
+
+.symbol-form { margin-bottom: 16px; }
+.symbol-form__label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; }
+.symbol-form__row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.symbol-form__input {
+  padding: 8px 12px; border: 1px solid var(--border); background: var(--bg);
+  color: var(--text); font: inherit; font-size: 0.95rem; width: 160px;
+}
+.symbol-form__input:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+.symbol-form__button {
+  padding: 8px 16px; border: 1px solid var(--accent); background: var(--accent);
+  color: #fff; font: inherit; font-size: 0.9rem; cursor: pointer;
+}
+.symbol-form__button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.symbol-form__button--secondary { background: var(--bg); color: var(--accent); }
+.symbol-form__error { margin: 8px 0 0; color: var(--down); font-size: 0.85rem; }

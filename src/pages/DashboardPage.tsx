@@ -6,6 +6,7 @@ import { useQuotes } from '../hooks/useQuotes';
 import { useWindowSeries } from '../hooks/useWindowSeries';
 import { DayView } from '../views/DayView';
 import { QuarterView } from '../views/QuarterView';
+import { UserChartSection } from '../views/UserChartSection';
 import { WeekView } from '../views/WeekView';
 import type { TimeWindow } from '../types';
 
@@ -14,6 +15,7 @@ const DEFAULT_CURRENCY = 'USD';
 /** Owns the selected window and loads its data; each view only decides how to present it. */
 export function DashboardPage() {
   const [window, setWindow] = useState<TimeWindow>('day');
+  const [selectedSymbol, setSelectedSymbol] = useState<string | null>(null);
   const quotes = useQuotes(SYMBOLS);
   const data = useWindowSeries(window);
 
@@ -32,6 +34,11 @@ export function DashboardPage() {
         {window === 'week' ? <WeekView data={data} currency={currency} /> : null}
         {window === 'quarter' ? <QuarterView data={data} currency={currency} /> : null}
       </section>
+      <UserChartSection
+        window={window}
+        selectedSymbol={selectedSymbol}
+        onSymbolChange={setSelectedSymbol}
+      />
     </>
   );
 }
